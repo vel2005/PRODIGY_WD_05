@@ -1,64 +1,78 @@
-// Replace with your own API key from OpenWeatherMap
-const API_KEY = 'YOUR_API_KEY';
+const apiKey = '8d6454a89dff871786a0307b0dbebbee'
+async function fetchWeatherData(city) {
+    try {
+        const response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`
+        );
 
-document.addEventListener('DOMContentLoaded', () => {
-    const fetchWeatherBtn = document.getElementById('fetch-weather');
-    const locationInput = document.getElementById('location');
-    const weatherInfoDiv = document.getElementById('weather-info');
-
-    // Event listener for the button
-    fetchWeatherBtn.addEventListener('click', () => {
-        const location = locationInput.value;
-        if (location) {
-            fetchWeatherData(location);
-        } else {
-            getUserLocation();
+        if (!response.ok) {
+            throw new Error("Unable to fetch weather data");
         }
-    });
-
-    // Fetch weather data using location name
-    function fetchWeatherData(location) {
-        fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${API_KEY}&units=metric`)
-            .then(response => response.json())
-            .then(data => displayWeatherData(data))
-            .catch(error => console.error('Error fetching weather data:', error));
+        const data = await response.json();
+        console.log(data);
+        // console.log(data.main.temp);
+        // console.log(data.name);
+        // console.log(data.wind.speed);
+        // console.log(data.main.humidity);
+        // console.log(data.visibility);
+        updateWeatherUI(data);
+    } catch (error) {
+        console.error(error);
     }
+}
 
-    // Use Geolocation API to get user's location
-    function getUserLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(position => {
-                const { latitude, longitude } = position.coords;
-                fetchWeatherByCoords(latitude, longitude);
-            }, error => {
-                alert('Unable to retrieve your location.');
-                console.error('Error getting location:', error);
-            });
-        } else {
-            alert('Geolocation is not supported by this browser.');
-        }
-    }
+const cityElement = document.querySelector(".city");
+const temperature = document.querySelector(".temp");
+const windSpeed = document.querySelector(".wind-speed");
+const humidity = document.querySelector(".humidity");
+const visibility = document.querySelector(".visibility-distance");
 
-    // Fetch weather data using latitude and longitude
-    function fetchWeatherByCoords(lat, lon) {
-        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
-            .then(response => response.json())
-            .then(data => displayWeatherData(data))
-            .catch(error => console.error('Error fetching weather data:', error));
-    }
+const descriptionText = document.querySelector(".description-text");
+const date = document.querySelector(".date");
+const descriptionIcon = document.querySelector(".description i");
 
-    // Display the weather data on the page
-    function displayWeatherData(data) {
-        if (data.cod === 200) {
-            weatherInfoDiv.innerHTML = `
-                <div><strong>Location:</strong> ${data.name}, ${data.sys.country}</div>
-                <div><strong>Temperature:</strong> ${data.main.temp} °C</div>
-                <div><strong>Weather:</strong> ${data.weather[0].description}</div>
-                <div><strong>Humidity:</strong> ${data.main.humidity}%</div>
-                <div><strong>Wind Speed:</strong> ${data.wind.speed} m/s</div>
-            `;
-        } else {
-            weatherInfoDiv.innerHTML = `<div>Error: ${data.message}</div>`;
-        }
+// fetchWeatherData();
+
+function updateWeatherUI(data) {
+    cityElement.textContent = data.name;
+    temperature.textContent = `${Math.round(data.main.temp)}`;
+    windSpeed.textContent = `${data.wind.speed} km/h`;
+    humidity.textContent = `${data.main.humidity}%`;
+    visibility.textContent = `${data.visibility / 1000} km`;
+    descriptionText.textContent = data.weather[0].description;
+
+    const currentDate = new Date();
+    date.textContent = currentDate.toDateString();
+    const weatherIconName = getWeatherIconName(data.weather[0].main);
+    descriptionIcon.innerHTML = `<i class="material-icons">${weatherIconName}</i>`;
+}
+
+const formElement = document.querySelector(".search-form");
+const inputElement = document.querySelector(".city-input");
+
+formElement.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const city = inputElement.value;
+    if (city !== "") {
+        fetchWeatherData(city);
+        inputElement.value = "";
     }
 });
+
+function getWeatherIconName(weatherCondition) {
+    const iconMap = {
+        Clear: "wb_sunny",
+        Clouds: "wb_cloudy",
+        Rain: "umbrella",
+        Thunderstorm: "flash_on",
+        Drizzle: "grain",
+        Snow: "ac_unit",
+        Mist: "cloud",
+        Smoke: "cloud",
+        Haze: "cloud",
+        Fog: "cloud",
+    };
+
+    return iconMap[weatherCondition] || "help";
+}
